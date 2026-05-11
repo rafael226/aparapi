@@ -397,14 +397,10 @@ public abstract class BlockWriter{
 
       } else if (_instruction instanceof I_NEWARRAY) {
           if (_instruction.getParentExpr() instanceof Return) {
-              throw new CodeGenException("'newarray' is not allowed after 'return'");
+              throw new CodeGenException("'newarray' must be emitted as a local before 'return'");
           }
 
-          for (Instruction operand = _instruction.getFirstChild(); operand != null; operand = operand.getNextExpr()) {
-              write("[");
-              writeInstruction(operand);
-              write("]");
-          }
+          writeNewArrayDimensions((I_NEWARRAY) _instruction);
 
       } else if (_instruction instanceof AssignToLocalVariable) {
          final AssignToLocalVariable assignToLocalVariable = (AssignToLocalVariable) _instruction;
@@ -632,11 +628,24 @@ public abstract class BlockWriter{
       } else if (_instruction instanceof Return) {
 
          final Return ret = (Return) _instruction;
-         write("return");
-         if (ret.getStackConsumeCount() > 0) {
-            write("(");
-            writeInstruction(ret.getFirstChild());
+         if (ret.getFirstChild() instanceof I_NEWARRAY) {
+            final I_NEWARRAY newArray = (I_NEWARRAY) ret.getFirstChild();
+            final String returnArray = "returnArray" + newArray.getThisPC();
+            write(convertType(getNewArrayDescriptor(newArray), true, true));
+            write(returnArray);
+            writeNewArrayDimensions(newArray);
+            write(";");
+            newLine();
+            write("return(");
+            write(returnArray);
             write(")");
+         } else {
+            write("return");
+            if (ret.getStackConsumeCount() > 0) {
+               write("(");
+               writeInstruction(ret.getFirstChild());
+               write(")");
+            }
          }
 
       } else if (_instruction instanceof MethodCall) {
@@ -756,6 +765,37 @@ public abstract class BlockWriter{
          throw new CodeGenException(String.format("%s", _instruction.getByteCode().toString().toLowerCase()));
       }
 
+   }
+
+   private void writeNewArrayDimensions(I_NEWARRAY newArray) throws CodeGenException {
+      for (Instruction operand = newArray.getFirstChild(); operand != null; operand = operand.getNextExpr()) {
+         write("[");
+         writeInstruction(operand);
+         write("]");
+      }
+   }
+
+   private String getNewArrayDescriptor(I_NEWARRAY newArray) throws CodeGenException {
+      switch (newArray.getType()) {
+         case 4:
+            return "[Z";
+         case 5:
+            return "[C";
+         case 6:
+            return "[F";
+         case 7:
+            return "[D";
+         case 8:
+            return "[B";
+         case 9:
+            return "[S";
+         case 10:
+            return "[I";
+         case 11:
+            return "[J";
+         default:
+            throw new CodeGenException("Unsupported newarray type " + newArray.getType());
+      }
    }
 
    private boolean isNeedParenthesis(Instruction instruction){
