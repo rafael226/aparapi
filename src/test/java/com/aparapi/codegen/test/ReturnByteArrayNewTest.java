@@ -19,29 +19,8 @@ import org.junit.Test;
 
 public class ReturnByteArrayNewTest extends com.aparapi.codegen.CodeGenJUnitBase {
 
-    private static final String[] expectedOpenCL = {
-        "typedef struct This_s{\n"
-            + "   int passid;\n"
-            + "}This;\n"
-            + "int get_pass_id(This *this){\n"
-            + "   return this->passid;\n"
-            + "}\n"
-            + " __global char* com_aparapi_codegen_test_ReturnByteArrayNew__returnByteArrayNew(This *this){\n"
-            + "   char returnArray3[1024];\n"
-            + "   return(returnArray3);\n"
-            + "}\n"
-            + "__kernel void run(\n"
-            + "   int passid\n"
-            + "){\n"
-            + "   This thisStruct;\n"
-            + "   This* this=&thisStruct;\n"
-            + "   this->passid = passid;\n"
-            + "   {\n"
-            + "      com_aparapi_codegen_test_ReturnByteArrayNew__returnByteArrayNew(this);\n"
-            + "      return;\n"
-            + "   }\n"
-            + "}"
-    };
+    private static final String[] expectedOpenCL = ReturnArrayNewTestSupport.expectedOpenCL("char",
+            "ReturnByteArrayNew", "returnByteArrayNew");
     private static final Class<? extends com.aparapi.internal.exception.AparapiException> expectedException = null;
 
     @Test

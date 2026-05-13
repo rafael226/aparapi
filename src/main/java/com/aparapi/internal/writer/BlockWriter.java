@@ -396,10 +396,6 @@ public abstract class BlockWriter{
           writeComposite((CompositeInstruction) _instruction);
 
       } else if (_instruction instanceof I_NEWARRAY) {
-          if (_instruction.getParentExpr() instanceof Return) {
-              throw new CodeGenException("'newarray' must be emitted as a local before 'return'");
-          }
-
           writeNewArrayDimensions((I_NEWARRAY) _instruction);
 
       } else if (_instruction instanceof AssignToLocalVariable) {
@@ -630,22 +626,22 @@ public abstract class BlockWriter{
          final Return ret = (Return) _instruction;
          if (ret.getFirstChild() instanceof I_NEWARRAY) {
             final I_NEWARRAY newArray = (I_NEWARRAY) ret.getFirstChild();
-            final String returnArray = "returnArray" + newArray.getThisPC();
-            write(convertType(getNewArrayDescriptor(newArray), true, true));
-            write(returnArray);
+            final String returnArrayName = "returnArray" + ret.getThisPC();
+            write(convertType(ret.getMethod().getReturnType(), true, true));
+            write(returnArrayName);
             writeNewArrayDimensions(newArray);
             write(";");
             newLine();
             write("return(");
-            write(returnArray);
+            write(returnArrayName);
             write(")");
-         } else {
-            write("return");
-            if (ret.getStackConsumeCount() > 0) {
-               write("(");
-               writeInstruction(ret.getFirstChild());
-               write(")");
-            }
+            return;
+         }
+         write("return");
+         if (ret.getStackConsumeCount() > 0) {
+            write("(");
+            writeInstruction(ret.getFirstChild());
+            write(")");
          }
 
       } else if (_instruction instanceof MethodCall) {
@@ -772,29 +768,6 @@ public abstract class BlockWriter{
          write("[");
          writeInstruction(operand);
          write("]");
-      }
-   }
-
-   private String getNewArrayDescriptor(I_NEWARRAY newArray) throws CodeGenException {
-      switch (newArray.getType()) {
-         case 4:
-            return "[Z";
-         case 5:
-            return "[C";
-         case 6:
-            return "[F";
-         case 7:
-            return "[D";
-         case 8:
-            return "[B";
-         case 9:
-            return "[S";
-         case 10:
-            return "[I";
-         case 11:
-            return "[J";
-         default:
-            throw new CodeGenException("Unsupported newarray type " + newArray.getType());
       }
    }
 
